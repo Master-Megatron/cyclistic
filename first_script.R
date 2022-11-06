@@ -120,4 +120,111 @@ all_trips_v3 <- all_trips_v2[!( all_trips_v2$ride_length <0),]
 all_trips_v3<-distinct(all_trips_v3,ride_id,.keep_all = TRUE)
 duplicated(all_trips_v3)
 # save for analyze
-write.csv(all_trips_v3, file = 'C:/Users/akung/Documents/R/Projek/projek_1/all_trips_v3.csv')
+write.csv(all_trips_v3, file = 'C:/Users/akung/Documents/R/Projek/projek_1/cyclistic/all_trips_v3.csv')
+
+
+
+#--------------------
+# D. CONDUCT DESCRIPTIVE ANALYSIS
+#=====================================
+# 1 Descriptive analysis on ride_length (all figures in seconds)
+all_trips_v3<- read.csv("all_trips_v3.csv")
+
+distinct(all_trips_v3,month, .keep_all = FALSE)
+mean(all_trips_v3$ride_length) #straight average (toal ride length/ rides)
+median(all_trips_v3$ride_length) #midpoint number in the asceding array og the ride lengths
+max(all_trips_v3$ride_length)
+min(all_trips_v3$ride_length)
+
+#2 condense the four lines abouve to one using summary()
+summary(all_trips_v3$ride_length)
+
+
+# 3 Compare members and casual users
+aggregate(all_trips_v3$ride_length ~ all_trips_v3$member_casual, FUN = mean)
+aggregate(all_trips_v3$ride_length ~ all_trips_v3$member_casual, FUN = median)
+aggregate(all_trips_v3$ride_length ~ all_trips_v3$member_casual, FUN = max)
+aggregate(all_trips_v3$ride_length ~ all_trips_v3$member_casual, FUN = min)
+
+# 4 see the average ride time by each day for members vs casual users
+aggregate(all_trips_v3$ride_length ~ all_trips_v3$member_casual + all_trips_v3$day_of_week, FUN = mean)
+# Fix the day of the week. 
+all_trips_v3$day_of_week <- ordered(all_trips_v3$day_of_week, level = c ("Sunday","Monday", "Tuesday", "Wednesday","Thursday", "Friday", "Saturday"))
+# Check the average ride time by each day for members vs casual users
+aggregate(all_trips_v3$ride_length ~ all_trips_v3$member_casual + all_trips_v3$day_of_week, FUN = mean)
+
+#6 calculate ridership data by type and weekday
+all_trips_v3 %>%
+  mutate(weekday = wday(started_at, label = TRUE))%>% #creates weekday field using wday()
+  group_by(member_casual, weekday)%>% #groupsby userstype and weekday
+  summarise(number_of_rides = n(),average_duration = mean(ride_length)) %>% # calculates the average duration
+  arrange(member_casual,weekday) # sorts
+#month
+all_trips_v3 %>%
+  mutate(month = factor(month, 
+                        levels = month, 
+                        labels = month, 
+                        ordered = TRUE))%>%  #by month
+  group_by(member_casual, month)%>% #groupsby userstype and weekday
+  summarise(number_of_rides = n(),average_duration = mean(ride_length)) %>% # calculates the average duration
+  arrange(member_casual,month) # sorts
+
+# 7 Visualize the number of rides by rider type
+all_trips_v3 %>%
+  mutate(weekday = wday(started_at, label = TRUE)) %>%
+  group_by(member_casual,weekday) %>%
+  summarise(number_of_rides = n(), average_duration = mean(ride_length)) %>%
+  arrange(member_casual,weekday) %>%
+  ggplot(aes(x = weekday, y = number_of_rides, fill = member_casual)) +
+  geom_col(position = "dodge") +
+  scale_y_continuous(labels = label_number(scale = 1e-3, suffix = "K", accuracy = 1))+ #Scientific notation
+  labs(title = "The Number Of Rides by Rider Type",
+       subtitle = "from Oktober 2021 until September 2022 ",
+       x="Day of week",
+       y= "Number of rides")+
+  theme_classic()
+
+# 8 visualization for average duration
+all_trips_v3%>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>%
+  group_by(member_casual, weekday) %>%
+  summarise(number_of_rides = n(), average_duration = mean(ride_length)/60) %>%
+  arrange(member_casual, weekday) %>%
+  ggplot(aes(x=weekday, y = average_duration, fill = member_casual))+
+  geom_col(position = "dodge")+
+  labs(title = "Average Duration by Rider Type",
+       subtitle = "from Oktober 2021 until September 2022 ",
+       x="Weekday",
+       y= "Average duration in minutes")+
+  theme_bw()
+
+# 9 Visualize the number of rides by rider type in month
+all_trips_v3 %>%
+  mutate(month = factor(month, 
+                        levels = month, 
+                        labels = month, 
+                        ordered = TRUE))%>%  #by month
+  group_by(member_casual, month)%>% #groupsby userstype and weekday
+  summarise(number_of_rides = n(),average_duration = mean(ride_length)) %>% # calculates the average duration
+  arrange(member_casual,month) %>%# sorts
+  ggplot(aes(x=month, y = number_of_rides, fill = member_casual))+
+  geom_col(position = "dodge")+
+  labs(title = "The Number Of Rides by Rider Type", 
+       x="Month",
+       y= "Number of rides")+
+  theme_bw()
+# 10 Visualize the average duration by rider type in month
+all_trips_v3 %>%
+  mutate(month = factor(month, 
+                        levels = month, 
+                        labels = month, 
+                        ordered = TRUE))%>%  #by month
+  group_by(member_casual, month)%>% #groupsby userstype and weekday
+  summarise(number_of_rides = n(),average_duration = mean(ride_length)/60) %>% # calculates the average duration
+  arrange(member_casual,month) %>%# sorts
+  ggplot(aes(x=month, y = average_duration, fill = member_casual))+
+  geom_col(position = "dodge")+
+  labs(title = "Average Duration by Rider Type 12 Month", 
+       x="Month",
+       y= "Average duration in minutes")+
+  theme_bw()
